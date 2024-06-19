@@ -9,8 +9,12 @@
 .cards {
   &__container  {
     display: grid;
-    grid-template-columns: auto auto auto auto;
+    // grid-template-columns: auto auto auto auto;\
+    height: 600px;
+    width: 500px;
     row-gap: 10px;
     column-gap: 10px;
+    overflow-y: scroll;
+    border: 1px solid #000000;
   }
 }
