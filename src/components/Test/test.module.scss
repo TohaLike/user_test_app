@@ -9,8 +9,16 @@
 .cards {
   &__container  {
     display: grid;
-    grid-template-columns: auto auto auto auto;
+    grid-template-columns: repeat(4, auto);
+    justify-content: center;
     row-gap: 10px;
     column-gap: 10px;
+  }
+}
+
+
+.add {
+  &__container {
+    // margin: 10px 332px;
   }
 }
