@@ -2,130 +2,88 @@
 import React, { useEffect, useState } from "react";
 import test from "./test.module.scss";
 import axios from "axios";
-import { getStaticProps } from "@/services/food-service";
+import { fetcher } from "@/fetcher/fetcher";
+import useSWR, { useSWRConfig } from "swr";
+import useSWRInfinite from "swr/infinite";
 
 export default function Test() {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [food, setFood] = useState([]);
-  const [isId, setId] = useState("");
-  const [updateTest, setUpdateText] = useState("");
-  const [isOpenUpdate, setOpenUpdate] = useState(false);
+  const { mutate } = useSWRConfig();
+  const { data, error } = useSWR("http://localhost:3001/todos", fetcher);
+  const [text, setText] = useState("");
+  const [open, setOpen] = useState(false);
+  const [changeText, setChangeText] = useState("");
+  const [indexOpen, setIndexOpen] = useState(false);
 
-  const getFood = async () => {
-    try {
-      const food = await getStaticProps();
-      setFood(food);
-    } catch (err) {
-      console.log(err);
-    }
+  const addData = async () => {
+    await fetcher("http://localhost:3001/todos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: `${data.length + 1}`, title: text }),
+    });
+    mutate("http://localhost:3001/todos");
+    setText("");
   };
 
-  const addFood = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("http://localhost:3001/store", {
-        id: "",
-        name: name,
-        price: price,
-        availability: false,
-      });
-      setName("");
-      setPrice("");
-      getFood();
-    } catch (err) {
-      console.log(err);
-    }
+  const deleteData = async (index) => {
+    await fetcher(`http://localhost:3001/todos/${index}`, {
+      method: "DELETE",
+    });
+    mutate("http://localhost:3001/todos");
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.post("http://localhost:3001/store/delete", {
-        id,
-      });
-      getFood();
-    } catch (err) {
-      console.log(err);
-    }
+  const updateData = async (index) => {
+    await fetcher(`http://localhost:3001/todos/${index}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: changeText }),
+    });
+    mutate("http://localhost:3001/todos");
+    setOpen(false)
   };
 
-  const handleUpdate = async (id) => {
-    try {
-      await axios.post("http://localhost:3001/store/update", {
-        id,
-        name: updateTest,
-      });
-      getFood();
-      setOpenUpdate(false)
-      console.log(updateTest);
-    } catch (err) {
-      console.log(err);
-    }
+  const openData = (index, title) => {
+    setIndexOpen(index);
+    setChangeText(title);
+    setOpen(true)
   };
 
-  const openUpdate = (id, name) => {
-    setOpenUpdate(true);
-    setUpdateText(name);
-    setId(id);
-  };
-
-  const renderFood = (prop) => {
-    const { _id, name, price } = prop;
-    // setName(name);
-
+  const TestCard = (props, index) => {
+    const { id, title } = props;
     return (
-      <div key={name} className={test.card}>
-        {_id === isId && isOpenUpdate ? (
+      <div key={index} className={test.container}>
+        {index === indexOpen && open ? (
           <input
             type="text"
-            value={updateTest}
-            onChange={(e) => setUpdateText(e.target.value)}
+            value={changeText}
+            onChange={(e) => setChangeText(e.target.value)}
           />
         ) : (
-          <h1
-            className={test.card__title}
-            onClick={() => openUpdate(_id, name)}
-          >
-            {name}
-          </h1>
+          <p onClick={() => openData(index, title)}>{title}</p>
         )}
-
-        <span className={test.card__price}>{price}</span>
-
-        <button onClick={() => handleDelete(_id)}>Delete</button>
-        <button onClick={() => handleUpdate(_id)}>Updated</button>
+        <button onClick={() => updateData(id)}>Update</button>
+        <button onClick={() => deleteData(id)}>Delete</button>
       </div>
     );
   };
 
-  useEffect(() => {
-    getFood();
-  }, []);
+  if (error) return <div>Failed to load</div>;
+  if (!data) return <div>Loading...</div>;
 
   return (
-    <div className={test.container}>
+    <div>
       <h1>Test app</h1>
-      <div>
-        <p>Введи текст</p>
-
-        <form onSubmit={addFood}>
-          <input
-            type="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            type="price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <button type="submit">Add</button>
-        </form>
+      <div className={test.add__container}>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          type="text"
+        />
+        <button onClick={addData}>Add</button>
       </div>
       <div className={test.article}>
         <div className={test.cards}>
           <div className={test.cards__container}>
-            {food?.map((props) => renderFood(props))}
+            {data?.map((props, index) => TestCard(props, index))}
           </div>
         </div>
       </div>
